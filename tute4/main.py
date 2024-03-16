@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_squared_error
+import data_replacer as dr
 
 
 def f(x: np.ndarray):
@@ -89,6 +90,41 @@ def question1():
     plt.show()
 
 
+def question2():
+    data = pd.read_csv("pokemonregr.csv")
+    # Replace with averages (Use question 1)
+    data = dr.replace_with_mean(data)
+    # obtain the data and ouput
+    # The output of the system is the weight
+    y = data["weight_kg"]
+    # The X data is literally everything else
+    X = data.drop("weight_kg", axis=1)
+    train_X = X.to_numpy()
+    train_y = y
+    reg = LinearRegression()
+    reg.fit(train_X, train_y)
+    params = reg.coef_
+
+    most_important = params.argmax()
+    print("Non-Normalised Parameters")
+    print("-------------------------")
+    print("Estimated Parameters {}".format(params))
+    print("Most Important Parameter {}".format(data.columns[most_important]))
+
+    # Normalisation of input data
+    # Using min max data
+    norm_X = (X - X.min()) / (X.max() - X.min())
+    reg_norm = LinearRegression()
+    reg_norm.fit(norm_X, train_y)
+    norm_params = reg_norm.coef_
+    print("Normalised Parameters")
+    print("---------------------")
+    print("Estimated Parameters {}".format(norm_params))
+
+    print("Most Important Parameter {}".format(
+        data.columns[norm_params.argmax()]))
+
+
 if __name__ == "__main__":
-    question1()
+    question2()
     exit(0)
