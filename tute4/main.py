@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_squared_error
 import data_replacer as dr
@@ -125,6 +127,55 @@ def question2():
         data.columns[norm_params.argmax()]))
 
 
+def question3():
+    data = pd.read_csv("w3classif.csv")
+    y = data.iloc[:, 2]
+    X = data.iloc[:, 0:2]
+    scaler = StandardScaler()
+    scaler.fit(X)
+    X = scaler.transform(X)
+    reg = LogisticRegression()
+    reg.fit(X, y)
+    print("Model Coefficients:", reg.coef_)
+    print("\nModel Intercept:", reg.intercept_)
+
+    # b.)
+    test_point = np.array([[1.1, 1.1]])
+    norm_test_point = scaler.transform(test_point)
+    # Using Logistic Regression, the test point point probability can be estimated:
+    probability_y1 = reg.predict_proba(norm_test_point)[0][1]
+    print("Probability p(y' = 1 | x'):", probability_y1)
+
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01),
+                         np.arange(y_min, y_max, 0.01))
+
+    # Standardize the meshgrid points using the same scaler
+    meshgrid_points = np.c_[xx.ravel(), yy.ravel()]
+    meshgrid_points_scaled = scaler.transform(meshgrid_points)
+
+    # Predict the class labels for the meshgrid points
+    predictions = reg.predict(meshgrid_points_scaled)
+
+    # Reshape the predictions to match the shape of the meshgrid
+    predictions = predictions.reshape(xx.shape)
+
+    # Plot the decision boundary and data points
+    plt.contourf(xx, yy, predictions, cmap='RdYlBu', alpha=0.5)
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap='RdYlBu',
+                edgecolors='k', marker='o', s=100)
+
+    # Plot labels and title
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.title('Logistic Regression Decision Boundary')
+
+    # Show the plot
+    plt.show()
+
+
 if __name__ == "__main__":
-    question2()
+    question3()
     exit(0)
