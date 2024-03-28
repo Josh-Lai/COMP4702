@@ -138,9 +138,6 @@ def question6():
     
     return
 
-
-
-
 def question123():
     data = pd.read_csv("w3classif.csv", names=["X1", "X2", "Y"])
     fig = plt.figure()
@@ -210,4 +207,4 @@ def question123():
 
 
 if __name__ == "__main__":
-    question6()
+    question123()
