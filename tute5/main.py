@@ -30,7 +30,7 @@ def create_train_test_data(data_size=10, test_size=0.3):
 
 def question2():
     # Read the training and test sets, train a KNN classifier for them
-    split = 0.7
+    split = 0.9
     test_num = 10
     x_trains, x_tests, y_trains, y_tests = create_train_test_data(
         test_num, split)
