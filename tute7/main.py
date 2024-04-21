@@ -3,8 +3,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, SubsetRandomSampler
+import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 class MLP(nn.Module):
@@ -51,16 +53,21 @@ def question3():
         "data", train=True, download=True, transform=transform)
     mnist_test = datasets.MNIST(
         "data", train=False, download=True, transform=transform)
-    train_subset, val_subset = random_split(
-        mnist_train, [0.7, 0.3], generator=torch.Generator().manual_seed(1))
+
+    test_subset, val_subset = random_split(
+        mnist_test, [0.7, 0.3], generator=torch.Generator().manual_seed(1))
+    train_subset = mnist_train
     # Split the train dataset for the validation daaset
     # Tensor equivalent of the data
 
     # Data loaders
-    batch_size = 256
+    # Load 750 random samples
+    num_samples = 750
+    sampler = SubsetRandomSampler(range(num_samples))
+    batch_size = 1
     train_loaders = DataLoader(
-        train_subset, shuffle=True, batch_size=batch_size)
-    test_loaders = DataLoader(mnist_test, shuffle=True, batch_size=batch_size)
+        train_subset, batch_size=batch_size, sampler=sampler)
+    test_loaders = DataLoader(test_subset, shuffle=True, batch_size=batch_size)
     val_loader = DataLoader(val_subset, shuffle=True, batch_size=batch_size)
     # Get the size of the data
     print("Data Size {}".format(mnist_train.data.shape))
@@ -69,6 +76,11 @@ def question3():
     # Initialise the model and train
     model = MLP(28*28, 10)
 
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(device)
+
+    model.to(device)
+
     loss_function = torch.nn.CrossEntropyLoss(reduction="mean")
     learning_rate = 1e-3
     optimiser = optim.SGD(model.parameters(), lr=learning_rate)
@@ -76,7 +88,7 @@ def question3():
 
     for epoch in range(num_epochs):
         print("Epoch {} / {}".format(epoch, num_epochs))
-        for batch_idx, (data, target) in enumerate(train_loaders):
+        for (data, target) in tqdm(train_loaders):
             # Each epoch the data will be shuffled, iterate over data
             """
             print("Batch:", batch_idx)
@@ -84,24 +96,31 @@ def question3():
             print("Target shape:", target.shape)
             """
             # Loop over the batch
-            for idx in range(batch_size):
-                x = data[idx, :].reshape(-1, 28*28)
-                y_pred = model(x)
+            x = data.reshape(-1, 28*28).to(device)
+            y_pred = model(x)
 
-                # Estimate the loss
-                print(data[idx, :].shape)
-                print(target.shape)
-                print(y_pred)
-                print(target[0])
-                loss = loss_function(y_pred, target[idx])
+            # Estimate the loss
+            loss = loss_function(y_pred, target.to(device))
 
-                # Zero the param gradient
-                optimiser.zero_grad()
+            # Zero the param gradient
+            optimiser.zero_grad()
 
-                # Backpropaagate to compute gradients
-                loss.backward()
+            # Backpropaagate to compute gradients
+            loss.backward()
 
-                optimiser.step()
+            optimiser.step()
+            # Run over validation set
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for val_data in val_loader:
+                images, labels = val_data
+                images = images.reshape(-1, 28*28)
+                outputs = model(images.to(device))
+                _, predictions = torch.max(outputs, 1)
+                total += labels.size(0)
+                correct += (predictions == labels.to(device)).sum().item()
+        print("Accuracy: {}%".format(100 * correct // total))
 
 
 if __name__ == "__main__":
