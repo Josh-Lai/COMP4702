@@ -17,10 +17,11 @@ class MLP(nn.Module):
         # Input 28x28
 
         # Set up the first layer
-        self.fc1 = nn.Linear(dim_in, 100)
-        self.fc2 = nn.Linear(100, 100)
-        self.fc3 = nn.Linear(100, 100)
-        self.out = nn.Linear(100, dim_out)
+        hidden_layers = 512
+        self.fc1 = nn.Linear(dim_in, hidden_layers)
+        self.fc2 = nn.Linear(hidden_layers, hidden_layers)
+        self.fc3 = nn.Linear(hidden_layers, hidden_layers)
+        self.out = nn.Linear(hidden_layers, dim_out)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -85,9 +86,13 @@ def question3():
     learning_rate = 1e-3
     optimiser = optim.SGD(model.parameters(), lr=learning_rate)
     num_epochs = 10
+    
+    losses = []
+    accs = []
 
     for epoch in range(num_epochs):
         print("Epoch {} / {}".format(epoch, num_epochs))
+        running_loss = 0.0
         for (data, target) in tqdm(train_loaders):
             # Each epoch the data will be shuffled, iterate over data
             """
@@ -110,6 +115,7 @@ def question3():
 
             optimiser.step()
             # Run over validation set
+            running_loss += loss.item()
         correct = 0
         total = 0
         with torch.no_grad():
@@ -120,7 +126,36 @@ def question3():
                 _, predictions = torch.max(outputs, 1)
                 total += labels.size(0)
                 correct += (predictions == labels.to(device)).sum().item()
+        losses.append(running_loss)
+        accs.append(100 * correct // total)
+        print("Running Loss: {}".format(running_loss))
         print("Accuracy: {}%".format(100 * correct // total))
+    
+    fig, ax = plt.subplots(1,2)
+    ax[0].plot(losses)
+    ax[0].set_title("Running Loss over Epochs")
+    ax[0].set(xlabel="Epoch #", ylabel="Running Loss")
+    ax[1].plot(accs)
+    ax[1].set_title("Accuracy over Epochs")
+    ax[1].set(xlabel="Epoch #", ylabel="Accuracy %")
+    plt.show()
+
+    # Evaluate accuracy on the test data
+    with torch.no_grad():
+        correct_test = 0
+        total_test = 0
+        print("TESTING MODEL")
+        for test_data in test_loaders:
+            images, labels = test_data
+            images = images.reshape(-1, 28*28)
+            outputs = model(images.to(device))
+            _, predictions = torch.max(outputs, 1)
+            total_test += labels.size(0)
+            correct_test += (predictions == labels.to(device)).sum().item()
+    print("Test Accuracy: {}%".format( 100* correct_test // total_test))
+
+
+
 
 
 if __name__ == "__main__":
