@@ -43,7 +43,9 @@ def visualise_samples(dataset, num_samples=10):
     plt.show()
 
 
-def question3():
+def question3() -> MLP:
+    learning_rate = 1e-3
+    num_epochs = 10
 
     transform = transforms.Compose([
         transforms.ToTensor(),  # Convert PIL Image to tensor
@@ -83,10 +85,8 @@ def question3():
     model.to(device)
 
     loss_function = torch.nn.CrossEntropyLoss(reduction="mean")
-    learning_rate = 1e-3
     optimiser = optim.SGD(model.parameters(), lr=learning_rate)
-    num_epochs = 10
-    
+
     losses = []
     accs = []
 
@@ -130,8 +130,8 @@ def question3():
         accs.append(100 * correct // total)
         print("Running Loss: {}".format(running_loss))
         print("Accuracy: {}%".format(100 * correct // total))
-    
-    fig, ax = plt.subplots(1,2)
+
+    fig, ax = plt.subplots(1, 2)
     ax[0].plot(losses)
     ax[0].set_title("Running Loss over Epochs")
     ax[0].set(xlabel="Epoch #", ylabel="Running Loss")
@@ -152,9 +152,41 @@ def question3():
             _, predictions = torch.max(outputs, 1)
             total_test += labels.size(0)
             correct_test += (predictions == labels.to(device)).sum().item()
-    print("Test Accuracy: {}%".format( 100* correct_test // total_test))
+    print("Test Accuracy: {}%".format(100 * correct_test // total_test))
+    torch.save(model.state_dict(), "model.dct")
+    return model
 
 
+def question4():
+    model = MLP(28*28, 10)
+    model.load_state_dict(torch.load("model.dct"))
+    model.eval()
+    
+    weight_matrix = []
+    for name, param in model.named_parameters():
+        if 'weight' in name:
+            print(f"Layer: {name}, Shape: {param.shape}")
+            weight_matrix.append(param.detach().numpy())
+
+    first_hidden = weight_matrix[0]
+    norm_first_hidden = []
+    for row in first_hidden:
+        min_val = first_hidden.min()
+        max_val = first_hidden.max()
+        
+        norm_row= (row - min_val) / (max_val - min_val)
+        norm_first_hidden.append(norm_row)
+
+    print(norm_first_hidden)
+    num_rows_to_visualize = 9
+    fig, axes = plt.subplots(5, 2, figsize=(10, 20))
+    for i in range(num_rows_to_visualize):
+        axes.flatten()[i].imshow(first_hidden[i].reshape(28, 28), cmap='gray')
+        axes.flatten()[i].set_title(f'Weight Vector {i+1}')
+        axes.flatten()[i].axis('off')
+
+    plt.tight_layout()
+    plt.show()
 
 
 
@@ -164,4 +196,7 @@ if __name__ == "__main__":
     print("GPU - {0}".format(torch.cuda.get_device_name()))
     print("Running week 7")
 
-    question3()
+    #model = question3()
+    question4()
+    
+
